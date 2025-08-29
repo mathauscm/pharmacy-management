@@ -1,0 +1,13 @@
+-- SQL para criar as tabelas iniciais
+CREATE TABLE IF NOT EXISTS produtos (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  nome VARCHAR(255) NOT NULL,
+  preco DECIMAL(10,2) NOT NULL,
+  estoque INT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS notas (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  data DATE NOT NULL,
+  valor_total DECIMAL(10,2) NOT NULL
+);

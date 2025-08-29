@@ -1,0 +1,6 @@
+// ...existing code...
+// Controlador de notas fiscais
+exports.getNotas = (req, res) => {
+  res.json({ message: 'Listagem de notas fiscais' });
+};
+// ...existing code...

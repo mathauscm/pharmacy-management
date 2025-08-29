@@ -1,0 +1,6 @@
+// ...existing code...
+// Controlador do dashboard
+exports.getDashboard = (req, res) => {
+  res.json({ message: 'Dashboard' });
+};
+// ...existing code...

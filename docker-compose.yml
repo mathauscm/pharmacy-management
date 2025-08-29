@@ -1,0 +1,28 @@
+version: '3.8'
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend/uploads:/app/uploads
+    depends_on:
+      - db
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/dist:/app/dist
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: senha
+      MYSQL_DATABASE: pharmacy
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/seed.sql

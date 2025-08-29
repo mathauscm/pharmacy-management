@@ -1,0 +1,6 @@
+// ...existing code...
+// Controlador de produtos
+exports.getProdutos = (req, res) => {
+  res.json({ message: 'Listagem de produtos' });
+};
+// ...existing code...
