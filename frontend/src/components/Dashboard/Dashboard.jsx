@@ -18,10 +18,10 @@ const Dashboard = () => {
       
       const response = await api.get('/dashboard');
       
-      if (response.data.success) {
-        setDashboardData(response.data.data);
+      if (response.success) {
+        setDashboardData(response.data);
       } else {
-        throw new Error(response.data.message);
+        throw new Error(response.message);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Erro ao carregar dashboard');

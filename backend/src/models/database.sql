@@ -21,8 +21,6 @@ CREATE TABLE IF NOT EXISTS produtos (
     fabricante VARCHAR(255),
     ncm VARCHAR(10),
     unidade VARCHAR(10) DEFAULT 'UN',
-    estoque_atual DECIMAL(10,2) DEFAULT 0,
-    estoque_minimo DECIMAL(10,2) DEFAULT 0,
     ativo BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -54,85 +52,53 @@ CREATE TABLE IF NOT EXISTS itens_nota (
     valor_total DECIMAL(10,2) NOT NULL,
     desconto DECIMAL(10,2) DEFAULT 0,
     valor_liquido DECIMAL(10,2) NOT NULL,
+    info_adicional TEXT,
+    percentual_desconto DECIMAL(5,2) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (nota_id) REFERENCES notas(id) ON DELETE CASCADE,
     FOREIGN KEY (produto_id) REFERENCES produtos(id)
 );
 
--- Tabela de Movimentação de Estoque
-CREATE TABLE IF NOT EXISTS movimentacao_estoque (
-    id SERIAL PRIMARY KEY,
-    produto_id INTEGER NOT NULL,
-    tipo VARCHAR(20) NOT NULL, -- 'entrada', 'saida', 'ajuste'
-    quantidade DECIMAL(10,2) NOT NULL,
-    estoque_anterior DECIMAL(10,2) NOT NULL,
-    estoque_atual DECIMAL(10,2) NOT NULL,
-    referencia_id INTEGER, -- ID da nota ou venda
-    referencia_tipo VARCHAR(20), -- 'nota', 'venda', 'ajuste'
-    observacao TEXT,
-    usuario VARCHAR(100),
-    data_movimentacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (produto_id) REFERENCES produtos(id)
-);
 
 -- Índices para melhor performance
 CREATE INDEX IF NOT EXISTS idx_fornecedores_cnpj ON fornecedores(cnpj);
 CREATE INDEX IF NOT EXISTS idx_produtos_codigo ON produtos(codigo);
 CREATE INDEX IF NOT EXISTS idx_produtos_nome ON produtos(nome);
-CREATE INDEX IF NOT EXISTS idx_produtos_laboratorio ON produtos(laboratorio);
 CREATE INDEX IF NOT EXISTS idx_notas_numero ON notas(numero);
 CREATE INDEX IF NOT EXISTS idx_notas_fornecedor ON notas(fornecedor_id);
 CREATE INDEX IF NOT EXISTS idx_notas_data ON notas(data_emissao);
 CREATE INDEX IF NOT EXISTS idx_itens_nota_id ON itens_nota(nota_id);
 CREATE INDEX IF NOT EXISTS idx_itens_produto_id ON itens_nota(produto_id);
-CREATE INDEX IF NOT EXISTS idx_movimentacao_produto ON movimentacao_estoque(produto_id);
-CREATE INDEX IF NOT EXISTS idx_movimentacao_data ON movimentacao_estoque(data_movimentacao);
 
--- Função para atualizar updated_at automaticamente
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
--- Triggers para atualizar updated_at automaticamente
-CREATE TRIGGER update_fornecedores_updated_at 
-    BEFORE UPDATE ON fornecedores 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_produtos_updated_at 
-    BEFORE UPDATE ON produtos 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
-
-CREATE TRIGGER update_notas_updated_at 
-    BEFORE UPDATE ON notas 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
+-- Função para atualizar updated_at automaticamente (simplificada)
+-- Removida por enquanto para evitar problemas com dollar-quoted strings
 
 -- Views úteis para relatórios
-CREATE OR REPLACE VIEW view_produtos_estoque AS
+CREATE OR REPLACE VIEW view_produtos_historico AS
 SELECT 
     p.id,
     p.nome,
     p.codigo,
     p.fabricante,
-    p.estoque_atual,
-    p.estoque_minimo,
-    CASE 
-        WHEN p.estoque_atual <= p.estoque_minimo THEN 'BAIXO'
-        WHEN p.estoque_atual <= (p.estoque_minimo * 1.5) THEN 'ATENCAO'
-        ELSE 'OK'
-    END as status_estoque,
-    (SELECT AVG(valor_liquido/quantidade) 
+    (SELECT AVG(i.valor_liquido/i.quantidade) 
      FROM itens_nota i 
      JOIN notas n ON i.nota_id = n.id 
      WHERE i.produto_id = p.id 
      AND n.data_emissao >= CURRENT_DATE - INTERVAL '90 days'
-    ) as preco_medio_90dias
+    ) as preco_medio_90dias,
+    (SELECT MAX(n.data_emissao)
+     FROM itens_nota i 
+     JOIN notas n ON i.nota_id = n.id 
+     WHERE i.produto_id = p.id
+    ) as ultima_compra,
+    (SELECT f.nome
+     FROM itens_nota i 
+     JOIN notas n ON i.nota_id = n.id
+     JOIN fornecedores f ON n.fornecedor_id = f.id
+     WHERE i.produto_id = p.id 
+     ORDER BY n.data_emissao DESC 
+     LIMIT 1
+    ) as ultimo_fornecedor
 FROM produtos p
 WHERE p.ativo = TRUE;
 
@@ -147,7 +113,7 @@ SELECT
     n.data_emissao,
     i.quantidade,
     i.valor_unitario,
-    i.desconto_valor,
+    i.desconto,
     i.valor_liquido,
     (i.valor_liquido / i.quantidade) as preco_unitario_liquido
 FROM itens_nota i

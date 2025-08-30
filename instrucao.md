@@ -117,6 +117,7 @@ docker-compose -f docker-compose.dev.yml logs backend
 
 ## 📊 **Administração do Banco de Dados**
 
+
 ### Acessar com Adminer
 **URL**: http://localhost:8080
 

@@ -1,5 +1,5 @@
 const { runQuery } = require('../config/database');
-const logger = require('../middleware/logger');
+const { logger } = require('../middleware/logger');
 
 /**
  * Obter dados do dashboard principal
@@ -75,13 +75,13 @@ exports.getDashboard = async (req, res) => {
     // Estatísticas por período (mensal dos últimos 6 meses)
     const estatisticasMensaisQuery = `
       SELECT 
-        strftime('%Y-%m', data_emissao) as mes,
+        TO_CHAR(data_emissao, 'YYYY-MM') as mes,
         COUNT(*) as total_notas,
         SUM(valor_total) as valor_total,
         AVG(valor_total) as valor_medio
       FROM notas
-      WHERE data_emissao >= DATE('now', '-6 months')
-      GROUP BY strftime('%Y-%m', data_emissao)
+      WHERE data_emissao >= CURRENT_DATE - INTERVAL '6 months'
+      GROUP BY TO_CHAR(data_emissao, 'YYYY-MM')
       ORDER BY mes DESC
     `;
     const estatisticasMensais = await runQuery(estatisticasMensaisQuery);

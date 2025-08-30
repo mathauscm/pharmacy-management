@@ -1,7 +1,5 @@
 const { runQuery } = require('../config/database');
-const logger = require('../middleware/logger');
-const calculatorService = require('../services/calculatorService');
-const estoqueService = require('../services/estoqueService');
+const { logger } = require('../middleware/logger');
 
 /**
  * Listar produtos com informações de estoque e preços
@@ -67,35 +65,13 @@ exports.getProdutos = async (req, res) => {
     
     const produtos = await runQuery(query, params);
     
-    // Calcular informações adicionais para cada produto
-    const produtosComEstoque = await Promise.all(
-      produtos.map(async (produto) => {
-        try {
-          // Calcular estoque sugerido e consumo médio
-          const estoqueInfo = await estoqueService.calcularEstoqueSugerido(produto.id);
-          
-          return {
-            ...produto,
-            preco_medio: produto.preco_medio ? parseFloat(produto.preco_medio).toFixed(2) : '0.00',
-            maior_preco: produto.maior_preco ? parseFloat(produto.maior_preco).toFixed(2) : '0.00',
-            menor_preco: produto.menor_preco ? parseFloat(produto.menor_preco).toFixed(2) : '0.00',
-            estoque_atual: estoqueInfo.estoqueAtual || 0,
-            estoque_minimo: estoqueInfo.estoqueMinimo || 0,
-            quantidade_sugerida: estoqueInfo.quantidadeSugerida || 0,
-            consumo_medio_mensal: estoqueInfo.consumoMedioMensal || 0
-          };
-        } catch (error) {
-          logger.error(`Erro ao calcular estoque para produto ${produto.id}:`, error);
-          return {
-            ...produto,
-            estoque_atual: 0,
-            estoque_minimo: 0,
-            quantidade_sugerida: 0,
-            consumo_medio_mensal: 0
-          };
-        }
-      })
-    );
+    // Formatar preços
+    const produtosFormatados = produtos.map(produto => ({
+      ...produto,
+      preco_medio: produto.preco_medio ? parseFloat(produto.preco_medio).toFixed(2) : '0.00',
+      maior_preco: produto.maior_preco ? parseFloat(produto.maior_preco).toFixed(2) : '0.00',
+      menor_preco: produto.menor_preco ? parseFloat(produto.menor_preco).toFixed(2) : '0.00'
+    }));
     
     // Contar total de produtos
     const countQuery = `
@@ -112,7 +88,7 @@ exports.getProdutos = async (req, res) => {
     
     res.json({
       success: true,
-      data: produtosComEstoque,
+      data: produtosFormatados,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -175,7 +151,8 @@ exports.getProdutoById = async (req, res) => {
         i.quantidade,
         i.valor_unitario,
         i.valor_liquido,
-        i.desconto
+        i.desconto,
+        i.valor_liquido as preco_unitario_final
       FROM itens_nota i
       JOIN notas n ON i.nota_id = n.id
       JOIN fornecedores f ON n.fornecedor_id = f.id
@@ -185,15 +162,11 @@ exports.getProdutoById = async (req, res) => {
     
     const historico = await runQuery(historicoQuery, [id]);
     
-    // Calcular informações de estoque
-    const estoqueInfo = await estoqueService.calcularEstoqueSugerido(id);
-    
     res.json({
       success: true,
       data: {
         ...produto,
-        historico_compras: historico,
-        estoque_info: estoqueInfo
+        historico_compras: historico
       }
     });
     
@@ -225,7 +198,7 @@ exports.getHistoricoPrecos = async (req, res) => {
         i.valor_unitario,
         i.valor_liquido,
         i.desconto,
-        (i.valor_liquido / i.quantidade) as preco_unitario_liquido
+        i.valor_liquido as preco_unitario_liquido
       FROM itens_nota i
       JOIN notas n ON i.nota_id = n.id
       JOIN fornecedores f ON n.fornecedor_id = f.id
@@ -309,9 +282,9 @@ exports.getFornecedoresProduto = async (req, res) => {
         f.nome_fantasia,
         COUNT(i.id) as total_vendas,
         SUM(i.quantidade) as quantidade_total,
-        AVG(i.valor_liquido / i.quantidade) as preco_medio,
-        MIN(i.valor_liquido / i.quantidade) as menor_preco,
-        MAX(i.valor_liquido / i.quantidade) as maior_preco,
+        AVG(i.valor_liquido) as preco_medio,
+        MIN(i.valor_liquido) as menor_preco,
+        MAX(i.valor_liquido) as maior_preco,
         MAX(n.data_emissao) as ultima_venda
       FROM fornecedores f
       JOIN notas n ON f.id = n.fornecedor_id
@@ -340,5 +313,155 @@ exports.getFornecedoresProduto = async (req, res) => {
       message: 'Erro ao buscar fornecedores',
       error: error.message
     });
+  }
+};
+
+/**
+ * Obter consulta detalhada do produto com todas as informações necessárias
+ */
+exports.getConsultaProduto = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Informações básicas do produto
+    const produtoQuery = `
+      SELECT * FROM produtos WHERE id = ? AND ativo = TRUE
+    `;
+    
+    const produtos = await runQuery(produtoQuery, [id]);
+    
+    if (produtos.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Produto não encontrado'
+      });
+    }
+    
+    const produto = produtos[0];
+    
+    // Último preço e fornecedor
+    const ultimoPrecoQuery = `
+      SELECT 
+        i.valor_liquido as preco_unitario,
+        f.nome as fornecedor_nome,
+        n.data_emissao
+      FROM itens_nota i
+      JOIN notas n ON i.nota_id = n.id
+      JOIN fornecedores f ON n.fornecedor_id = f.id
+      WHERE i.produto_id = ?
+      ORDER BY n.data_emissao DESC
+      LIMIT 1
+    `;
+    
+    const ultimoPreco = await runQuery(ultimoPrecoQuery, [id]);
+    
+    // Todos os laboratórios (fabricantes)
+    const laboratoriosQuery = `
+      SELECT DISTINCT p.fabricante as laboratorio
+      FROM produtos p
+      JOIN itens_nota i ON p.id = i.produto_id
+      WHERE p.id = ? AND p.fabricante IS NOT NULL
+    `;
+    
+    const laboratorios = await runQuery(laboratoriosQuery, [id]);
+    
+    // Todos os fornecedores
+    const fornecedoresQuery = `
+      SELECT DISTINCT f.nome as fornecedor
+      FROM fornecedores f
+      JOIN notas n ON f.id = n.fornecedor_id
+      JOIN itens_nota i ON n.id = i.nota_id
+      WHERE i.produto_id = ?
+      ORDER BY f.nome
+    `;
+    
+    const fornecedores = await runQuery(fornecedoresQuery, [id]);
+    
+    // 3 melhores preços agrupados por fabricante
+    const melhoresPrecos = await this.getMelhoresPrecosPorFabricante(id);
+    
+    // Pedido médio mensal (baseado em 1 ano)
+    const pedidoMedioQuery = `
+      SELECT 
+        AVG(monthly_total) as pedido_medio_mensal
+      FROM (
+        SELECT 
+          DATE_TRUNC('month', n.data_emissao) as mes,
+          SUM(i.quantidade) as monthly_total
+        FROM itens_nota i
+        JOIN notas n ON i.nota_id = n.id
+        WHERE i.produto_id = ?
+          AND n.data_emissao >= CURRENT_DATE - INTERVAL '1 year'
+        GROUP BY DATE_TRUNC('month', n.data_emissao)
+      ) monthly_data
+    `;
+    
+    const pedidoMedio = await runQuery(pedidoMedioQuery, [id]);
+    
+    res.json({
+      success: true,
+      data: {
+        produto: produto.nome,
+        codigo: produto.codigo,
+        laboratorios: laboratorios.map(l => l.laboratorio).filter(Boolean),
+        fornecedores: fornecedores.map(f => f.fornecedor),
+        ultimo_preco: ultimoPreco.length > 0 ? {
+          valor: parseFloat(ultimoPreco[0].preco_unitario).toFixed(2),
+          fornecedor: ultimoPreco[0].fornecedor_nome,
+          data: ultimoPreco[0].data_emissao
+        } : null,
+        melhores_precos: melhoresPrecos,
+        pedido_medio_mensal: pedidoMedio[0]?.pedido_medio_mensal 
+          ? Math.round(parseFloat(pedidoMedio[0].pedido_medio_mensal))
+          : 0
+      }
+    });
+    
+  } catch (error) {
+    logger.error('Erro ao buscar consulta do produto:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro ao consultar produto',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Função auxiliar para obter os 3 melhores preços por fabricante
+ */
+exports.getMelhoresPrecosPorFabricante = async (produtoId) => {
+  try {
+    const query = `
+      WITH preco_por_fabricante AS (
+        SELECT DISTINCT
+          p.fabricante,
+          MIN(i.valor_liquido) OVER (PARTITION BY p.fabricante) as menor_preco
+        FROM itens_nota i
+        JOIN produtos p ON i.produto_id = p.id
+        JOIN notas n ON i.nota_id = n.id
+        WHERE i.produto_id = ? 
+          AND p.fabricante IS NOT NULL 
+          AND p.fabricante != 'Não informado'
+          AND i.quantidade > 0
+      )
+      SELECT 
+        fabricante,
+        menor_preco as preco_unitario
+      FROM preco_por_fabricante
+      ORDER BY menor_preco ASC
+      LIMIT 3
+    `;
+    
+    const result = await runQuery(query, [produtoId]);
+    
+    return result.map(item => ({
+      fabricante: item.fabricante,
+      preco: parseFloat(item.preco_unitario).toFixed(2)
+    }));
+    
+  } catch (error) {
+    logger.error('Erro ao buscar melhores preços por fabricante:', error);
+    return [];
   }
 };

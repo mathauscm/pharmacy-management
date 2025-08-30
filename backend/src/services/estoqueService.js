@@ -1,5 +1,5 @@
 const { runQuery } = require('../config/database');
-const logger = require('../middleware/logger');
+const { logger } = require('../middleware/logger');
 
 /**
  * Serviço para cálculos de estoque e sugestões de compra

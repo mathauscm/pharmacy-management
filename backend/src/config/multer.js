@@ -1,7 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const logger = require('../middleware/logger');
+const { logger } = require('../middleware/logger');
 
 // Certificar que diretório existe
 const uploadDir = path.join(__dirname, '../../uploads');

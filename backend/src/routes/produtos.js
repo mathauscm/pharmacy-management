@@ -15,4 +15,7 @@ router.get('/:id/historico-precos', validateProdutoId, produtoController.getHist
 // Fornecedores que vendem o produto
 router.get('/:id/fornecedores', validateProdutoId, produtoController.getFornecedoresProduto);
 
+// Consulta completa do produto
+router.get('/:id/consulta', validateProdutoId, produtoController.getConsultaProduto);
+
 module.exports = router;

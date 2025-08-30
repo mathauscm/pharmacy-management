@@ -1,7 +1,7 @@
 const { Pool } = require('pg');
 const path = require('path');
 const fs = require('fs');
-const logger = require('../middleware/logger');
+const { logger } = require('../middleware/logger');
 
 let db = null;
 
@@ -74,12 +74,20 @@ async function createTables() {
 
 /**
  * Executar query no banco PostgreSQL
+ * Converte automaticamente sintaxe ? para $1, $2, etc.
  */
 function runQuery(sql, params = [], connection = null) {
   const client = connection || db;
   
   return new Promise((resolve, reject) => {
-    client.query(sql, params)
+    // Converter sintaxe ? para $1, $2, etc. para PostgreSQL
+    let convertedQuery = sql;
+    let paramIndex = 1;
+    
+    // Substituir cada ? por $1, $2, $3, etc.
+    convertedQuery = convertedQuery.replace(/\?/g, () => `$${paramIndex++}`);
+    
+    client.query(convertedQuery, params)
       .then(result => {
         if (sql.trim().toLowerCase().startsWith('select')) {
           resolve(result.rows);

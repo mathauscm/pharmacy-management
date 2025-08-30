@@ -6,7 +6,7 @@ const path = require('path');
 require('dotenv').config();
 
 // Importar middlewares
-const logger = require('./src/middleware/logger');
+const { logger, requestLogger } = require('./src/middleware/logger');
 const errorHandler = require('./src/middleware/errorHandler');
 
 // Importar rotas

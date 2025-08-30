@@ -1,7 +1,7 @@
 const multer = require('../config/multer');
 const xmlParser = require('../services/xmlParser');
 const { runQuery } = require('../config/database');
-const logger = require('../middleware/logger');
+const { logger } = require('../middleware/logger');
 const path = require('path');
 const fs = require('fs');
 
