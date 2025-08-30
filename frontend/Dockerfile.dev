@@ -1,6 +1,6 @@
 FROM node:18-alpine
 
-# Instalar dependências do sistema
+# Instalar dumb-init para handling de sinais
 RUN apk add --no-cache dumb-init
 
 # Criar usuário não-root
@@ -13,20 +13,17 @@ WORKDIR /app
 # Copiar arquivos de dependências
 COPY --chown=nodejs:nodejs package*.json ./
 
-# Instalar dependências de produção
-RUN npm ci --only=production && npm cache clean --force
+# Instalar dependências (incluindo dev)
+RUN npm ci
 
 # Copiar código da aplicação
 COPY --chown=nodejs:nodejs . .
 
-# Criar diretórios necessários
-RUN mkdir -p uploads logs && chown -R nodejs:nodejs uploads logs
-
 # Mudar para usuário não-root
 USER nodejs
 
-# Expor porta da aplicação
-EXPOSE 3000
+# Expor porta do dev server
+EXPOSE 5173
 
-# Comando de inicialização com dumb-init para handling de sinais
-CMD ["dumb-init", "node", "server.js"]
+# Comando para desenvolvimento com hot reload
+CMD ["dumb-init", "npm", "run", "dev", "--", "--host", "0.0.0.0"]
