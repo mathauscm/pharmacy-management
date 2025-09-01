@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useApi } from '../../hooks/useApi';
 
 const Upload = () => {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
+  const api = useApi();
 
   const handleFileChange = (e) => {
     setSelectedFiles(Array.from(e.target.files));
@@ -21,12 +23,7 @@ const Upload = () => {
         formData.append('xmlFiles', file);
       });
 
-      const response = await fetch('/api/notas/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      const data = await response.json();
+      const data = await api.post('/notas/upload', formData);
 
       if (data.success) {
         alert(`Upload concluído: ${data.message}`);

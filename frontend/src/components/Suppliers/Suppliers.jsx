@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useApi } from '../../hooks/useApi';
 
 const Suppliers = () => {
   const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const api = useApi();
 
   const fetchFornecedores = async () => {
     setLoading(true);
@@ -11,8 +13,7 @@ const Suppliers = () => {
       const params = new URLSearchParams();
       if (searchTerm) params.append('search', searchTerm);
       
-      const response = await fetch(`/api/fornecedores?${params}`);
-      const data = await response.json();
+      const data = await api.get(`/fornecedores?${params}`);
       
       if (data.success) {
         setFornecedores(data.data);

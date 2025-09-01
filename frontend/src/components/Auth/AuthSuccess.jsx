@@ -23,7 +23,8 @@ const AuthSuccess = ({ onLogin }) => {
         };
         
         onLogin(userData);
-        navigate('/dashboard');
+        // Recarregar a página para garantir que a autenticação seja reconhecida
+        window.location.href = '/dashboard';
       } catch (error) {
         console.error('Erro ao processar token:', error);
         navigate('/login?error=invalid_token');

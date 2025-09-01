@@ -21,9 +21,15 @@ class ApiService {
    */
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
+    
+    // Adicionar token de autenticação se disponível
+    const token = localStorage.getItem('authToken');
+    const authHeaders = token ? { 'Authorization': `Bearer ${token}` } : {};
+    
     const config = {
       headers: {
         ...this.defaultHeaders,
+        ...authHeaders,
         ...options.headers
       },
       ...options
@@ -34,6 +40,14 @@ class ApiService {
       
       // Verificar se a resposta é bem-sucedida
       if (!response.ok) {
+        // Se não autorizado, limpar dados de autenticação e redirecionar
+        if (response.status === 401) {
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+          return;
+        }
+        
         const errorData = await response.json().catch(() => ({ 
           message: `Erro HTTP: ${response.status} ${response.statusText}` 
         }));

@@ -86,17 +86,7 @@ function App() {
           
           {user ? (
             <>
-              <Route path="/" element={
-                <div className="app-layout">
-                  <Header user={user} onLogout={handleLogout} />
-                  <div className="app-body">
-                    <Sidebar />
-                    <main className="main-content">
-                      <Navigate to="/dashboard" />
-                    </main>
-                  </div>
-                </div>
-              } />
+              <Route path="/" element={<Navigate to="/dashboard" />} />
               
               <Route path="/dashboard" element={
                 <div className="app-layout">

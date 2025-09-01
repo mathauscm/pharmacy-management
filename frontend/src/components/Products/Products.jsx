@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useApi } from '../../hooks/useApi';
 
 const Products = () => {
   const [produtos, setProdutos] = useState([]);
@@ -10,6 +11,7 @@ const Products = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const [itemsPerPage] = useState(20);
+  const api = useApi();
 
   const fetchProdutos = async (page = 1) => {
     setLoading(true);
@@ -19,8 +21,7 @@ const Products = () => {
       params.append('page', page.toString());
       params.append('limit', itemsPerPage.toString());
       
-      const response = await fetch(`/api/produtos?${params}`);
-      const data = await response.json();
+      const data = await api.get(`/produtos?${params}`);
       
       if (data.success) {
         setProdutos(data.data);
@@ -37,8 +38,7 @@ const Products = () => {
 
   const fetchProductDetails = async (productId) => {
     try {
-      const response = await fetch(`/api/produtos/${productId}/consulta`);
-      const data = await response.json();
+      const data = await api.get(`/produtos/${productId}/consulta`);
       
       if (data.success) {
         setProductDetails(data.data);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useApi } from '../../hooks/useApi';
 
 const Notes = () => {
   const [notas, setNotas] = useState([]);
@@ -8,6 +9,7 @@ const Notes = () => {
     dataInicio: '',
     dataFim: ''
   });
+  const api = useApi();
 
   const fetchNotas = async () => {
     setLoading(true);
@@ -17,8 +19,7 @@ const Notes = () => {
       if (filters.dataInicio) params.append('dataInicio', filters.dataInicio);
       if (filters.dataFim) params.append('dataFim', filters.dataFim);
       
-      const response = await fetch(`/api/notas?${params}`);
-      const data = await response.json();
+      const data = await api.get(`/notas?${params}`);
       
       if (data.success) {
         setNotas(data.data);
