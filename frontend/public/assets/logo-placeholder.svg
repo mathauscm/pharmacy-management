@@ -1,0 +1,19 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="120" height="120" rx="20" fill="url(#gradient)"/>
+  
+  <!-- Cross -->
+  <rect x="45" y="25" width="30" height="70" rx="4" fill="white"/>
+  <rect x="25" y="45" width="70" height="30" rx="4" fill="white"/>
+  
+  <!-- Leaf -->
+  <path d="M65 45 Q75 35 85 45 Q75 55 65 45" fill="#1abc9c"/>
+  <path d="M67 47 Q75 52 83 47" stroke="#16a085" stroke-width="1" fill="none"/>
+  
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1abc9c;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a085;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+</svg>

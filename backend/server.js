@@ -3,11 +3,13 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const path = require('path');
+const session = require('express-session');
 require('dotenv').config();
 
 // Importar middlewares
 const { logger, requestLogger } = require('./src/middleware/logger');
 const errorHandler = require('./src/middleware/errorHandler');
+const passport = require('./src/config/passport');
 
 // Importar rotas
 const routes = require('./src/routes');
@@ -31,6 +33,21 @@ app.use(morgan('combined', { stream: logger.stream }));
 // Middlewares de parsing
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Configurar sessões para Passport
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'myfarm-session-secret-change-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Inicializar Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Servir arquivos estáticos para uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
