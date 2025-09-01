@@ -6,7 +6,7 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    container_name: pharmacy-backend-dev
+    container_name: myfarm-backend-dev
     ports:
       - "3000:3000"
     environment:
@@ -27,13 +27,13 @@ services:
       - postgres
     restart: unless-stopped
     networks:
-      - pharmacy-network
+      - myfarm-network
     command: npm run dev
 
   # Banco de dados PostgreSQL - Desenvolvimento
   postgres:
     image: postgres:15-alpine
-    container_name: pharmacy-postgres-dev
+    container_name: myfarm-postgres-dev
     environment:
       POSTGRES_DB: pharmacy_db
       POSTGRES_USER: postgres
@@ -45,14 +45,14 @@ services:
       - ./backend/src/models/database.sql:/docker-entrypoint-initdb.d/01-init.sql
     restart: unless-stopped
     networks:
-      - pharmacy-network
+      - myfarm-network
 
   # Frontend React - Desenvolvimento
   frontend:
     build: 
       context: ./frontend
       dockerfile: Dockerfile.dev
-    container_name: pharmacy-frontend-dev
+    container_name: myfarm-frontend-dev
     ports:
       - "5173:5173"
     environment:
@@ -64,7 +64,7 @@ services:
       - backend
     restart: unless-stopped
     networks:
-      - pharmacy-network
+      - myfarm-network
     command: npm run dev
 
 volumes:
@@ -72,5 +72,5 @@ volumes:
     driver: local
 
 networks:
-  pharmacy-network:
+  myfarm-network:
     driver: bridge

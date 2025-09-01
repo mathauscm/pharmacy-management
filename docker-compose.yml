@@ -6,7 +6,7 @@ services:
     build: 
       context: ./backend
       dockerfile: Dockerfile
-    container_name: pharmacy-backend
+    container_name: myfarm-backend
     ports:
       - "3000:3000"
     environment:
@@ -33,14 +33,14 @@ services:
       - postgres
     restart: unless-stopped
     networks:
-      - pharmacy-network
+      - myfarm-network
 
   # Frontend React
   frontend:
     build: 
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: pharmacy-frontend
+    container_name: myfarm-frontend
     ports:
       - "5173:80"
     environment:
@@ -49,12 +49,12 @@ services:
       - backend
     restart: unless-stopped
     networks:
-      - pharmacy-network
+      - myfarm-network
 
   # Banco de dados PostgreSQL
   postgres:
     image: postgres:15-alpine
-    container_name: pharmacy-postgres
+    container_name: myfarm-postgres
     environment:
       POSTGRES_DB: pharmacy_db
       POSTGRES_USER: postgres
@@ -67,24 +67,24 @@ services:
       - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
     restart: unless-stopped
     networks:
-      - pharmacy-network
+      - myfarm-network
 
   # Adminer para administração do banco (opcional)
   adminer:
     image: adminer:latest
-    container_name: pharmacy-adminer
+    container_name: myfarm-adminer
     ports:
       - "8080:8080"
     depends_on:
       - postgres
     restart: unless-stopped
     networks:
-      - pharmacy-network
+      - myfarm-network
 
 volumes:
   postgres_data:
     driver: local
 
 networks:
-  pharmacy-network:
+  myfarm-network:
     driver: bridge

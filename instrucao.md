@@ -131,7 +131,7 @@ docker-compose -f docker-compose.dev.yml logs backend
 ### Acessar Diretamente (PostgreSQL CLI)
 ```bash
 # Se usando Docker
-docker exec -it pharmacy-postgres-dev psql -U postgres -d pharmacy_db
+docker exec -it myfarm-postgres-dev psql -U postgres -d pharmacy_db
 
 # Se local
 psql -h localhost -p 5432 -U postgres -d pharmacy_db
