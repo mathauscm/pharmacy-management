@@ -2,6 +2,7 @@
 
 Sistema completo para gestão de farmácia com processamento de notas fiscais XML, controle de estoque e relatórios de preços e fornecedores.
 
+
 ## 📋 Funcionalidades
 
 ### Backend (Node.js)
